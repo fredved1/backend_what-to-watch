@@ -5,17 +5,18 @@ from llm_motor import LLMMotor, get_available_models
 import os
 from dotenv import load_dotenv
 
-# Laad de omgevingsvariabelen uit .env
+# Load environment variables from .env
 load_dotenv()
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Haal de API key uit de omgevingsvariabelen
+# Get API key from environment variables
 api_key = os.getenv('OPENAI_API_KEY')
 if not api_key:
     raise ValueError("OPENAI_API_KEY is not set in the environment variables")
 
+# Initialize LLMMotor with the movie recommendation agent
 llm_motor = LLMMotor(api_key)
 
 app = Flask(__name__)
@@ -42,17 +43,37 @@ def get_available_models_route():
 def select_model():
     data = request.json
     model = data.get('model')
-    # Implementeer hier de logica om het model te wijzigen als dat nodig is
-    return jsonify({"success": True, "message": f"Model {model} geselecteerd"})
+    # Implement model selection logic if needed
+    return jsonify({"success": True, "message": f"Model {model} selected"})
 
 @app.route('/api/clear-memory', methods=['POST'])
 def clear_memory():
     llm_motor.clear_memory()
-    return jsonify({"success": True, "message": "Geheugen gewist"})
+    return jsonify({"success": True, "message": "Memory cleared"})
+
+@app.route('/recommend', methods=['POST'])
+def get_recommendation():
+    data = request.json
+    user_input = data.get('message', '')
+    
+    if not user_input:
+        return jsonify({'error': 'No message provided'}), 400
+    
+    try:
+        # Get recommendation using the LLMMotor
+        response = llm_motor.generate_response(user_input)
+        return jsonify({'response': response})
+    except Exception as e:
+        logger.error(f"Error generating recommendation: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'healthy'})
 
 @app.route('/', methods=['GET'])
 def home():
-    return "Hello, Flask server is running!"
+    return "Movie Recommendation Service is running!"
 
 @app.route('/test', methods=['GET'])
 def test():

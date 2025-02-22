@@ -1,57 +1,68 @@
 import streamlit as st
-from llm_motor import LLMMotor, get_available_models
-import os
-from dotenv import load_dotenv
+import requests
+import json
 
-# Laad de .env variabelen in
-load_dotenv()
+# Configure the page
+st.set_page_config(
+    page_title="What to Watch",
+    page_icon="🎬",
+    layout="centered"
+)
 
-# Haal de API-key op
-openai_api_key = os.getenv("OPENAI_API_KEY")
+# Initialize session state for chat history
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
 
-# Configuratie van de sidebar
-with st.sidebar:
-    if not openai_api_key:
-        st.error("API key not found. Please make sure it's set in the .env file.")
-        openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
-    else:
-        st.success("API key loaded successfully!")
-        st.write(f"Using API key: {openai_api_key[:5]}...")  # API-key verbergen behalve de eerste 5 karakters
-    
-    # Toon model selectie en temperatuur slider als API key is ingevoerd
-    if openai_api_key:
-        models = get_available_models(openai_api_key)
-        model = st.selectbox("Select Model", models, index=models.index("gpt-4o") if "gpt-4o" in models else 0)
-        temperature = st.slider("Temperature", min_value=0.0, max_value=2.0, value=0.7, step=0.1)
+# API endpoint
+API_URL = "http://localhost:5001"
 
-# Hoofdtitel en beschrijving van de app
-st.title("UWV Chatbot")
-st.caption("Een Streamlit chatbot aangedreven door OpenAI en LangChain, gespecialiseerd in UWV-diensten")
+def get_recommendation(message):
+    """Get movie recommendation from API"""
+    try:
+        response = requests.post(
+            f"{API_URL}/recommend",
+            json={"message": message},
+            headers={"Content-Type": "application/json"}
+        )
+        if response.status_code == 200:
+            return response.json()['response']
+        else:
+            return f"Error: {response.status_code}"
+    except requests.exceptions.RequestException as e:
+        return f"Error connecting to server: {str(e)}"
 
-# Initialiseer LLMMotor en start een nieuwe conversatie als deze nog niet bestaat
-if "llm_motor" not in st.session_state:
-    st.session_state.llm_motor = LLMMotor(openai_api_key, model, temperature)
-    st.session_state.llm_motor.start_new_conversation()
+# Main UI
+st.title("🎬 What to Watch")
+st.markdown("""
+Find your next favorite movie or TV show! Tell me what you like, 
+and I'll recommend something perfect for you.
+""")
 
-# Toon de gespreksgeschiedenis
-for message in st.session_state.llm_motor.get_chat_history():
+# Chat interface
+for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Verwerk gebruikersinvoer
-if prompt := st.chat_input("Stel hier uw vraag over UWV..."):
-    if not openai_api_key:
-        st.info("Voeg alstublieft uw OpenAI API-sleutel toe om door te gaan.")
-        st.stop()
+# User input
+if prompt := st.chat_input("What kind of movie or show are you in the mood for?"):
+    # Add user message to chat
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-    st.chat_message("user").markdown(prompt)
-    
-    with st.spinner("Even denken..."):
-        response = st.session_state.llm_motor.generate_response(prompt)
-    
-    st.chat_message("assistant").markdown(response)
+    # Get and display assistant response
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            response = get_recommendation(prompt)
+            st.markdown(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
 
-# Start nieuwe conversatie knop
-if st.button("Start Nieuwe Conversatie"):
-    st.session_state.llm_motor.start_new_conversation()
-    st.rerun()
+# Feedback button in sidebar
+with st.sidebar:
+    st.markdown("### Help us improve!")
+    if st.button("Give Feedback"):
+        st.markdown("Thanks for helping us improve! [Feedback Form](your_feedback_form_link)")
+
+# Footer
+st.markdown("---")
+st.markdown("*Don't forget to rate the recommendations to help us improve!*")
