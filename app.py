@@ -124,7 +124,8 @@ def home():
     return jsonify({
         'service': 'Movie Recommendation Service',
         'status': 'running',
-        'version': '1.0.0'
+        'version': '1.0.0',
+        'deployment_test': 'This is a deployment test'
     })
 
 @app.route('/test', methods=['GET'])
