@@ -1,68 +1,70 @@
-# What to Watch - Movie Recommendation Assistant
+# What To Watch - Movie Recommendation Backend
 
-An intelligent movie and TV show recommendation system that helps users discover content across various streaming platforms. The assistant uses GPT-4 to provide personalized recommendations based on user preferences and available streaming services.
+A Flask-based backend for the "What To Watch" movie recommendation app. This backend uses OpenAI's GPT models to generate personalized movie recommendations and enhances them with movie details and posters from TMDB.
 
 ## Features
 
-- Personalized movie and TV show recommendations
-- Support for multiple streaming platforms (Netflix, Prime Video, Disney+, etc.)
-- Direct links to watch content on your preferred platform
-- Focus on discovering hidden gems and underrated titles
-- Clean and intuitive Streamlit interface
+- AI-powered movie recommendations using OpenAI's GPT models
+- Integration with TMDB for movie details and posters
+- RESTful API endpoints for recommendations
+- Deployed on Azure App Service
+
+## API Endpoints
+
+- `GET /` - Home endpoint with service information
+- `GET /health` - Health check endpoint
+- `GET /test` - Test endpoint
+- `POST /recommend` - Get movie recommendations based on user input
+- `POST /api/send-message` - Send a message to the AI and get a response
+- `POST /api/start-conversation` - Start a new conversation
+- `POST /api/clear-memory` - Clear the conversation memory
 
 ## Tech Stack
 
-- Backend: Flask + LangChain + OpenAI GPT-4
-- Frontend: Streamlit
-- Deployment: Heroku
+- Flask: Web framework
+- LangChain: For building LLM applications
+- OpenAI: For generating recommendations
+- TMDB API: For movie details and posters
+- Azure: For deployment
 
-## Setup
+## Local Development
 
-1. Clone the repository:
+1. Clone the repository
 ```bash
-git clone https://github.com/[your-username]/backend_what-to-watch.git
+git clone https://github.com/fredved1/backend_what-to-watch.git
 cd backend_what-to-watch
 ```
 
-2. Create and activate a virtual environment:
+2. Create a virtual environment
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-3. Install dependencies:
+3. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file in the root directory and add your OpenAI API key:
+4. Create a `.env` file with your API keys
 ```
-OPENAI_API_KEY=your_api_key_here
+OPENAI_API_KEY=your_openai_api_key
+TMDB_API_KEY=your_tmdb_api_key
 ```
 
-5. Start the Flask backend:
+5. Run the Flask app
 ```bash
 python app.py
 ```
 
-6. In a new terminal, start the Streamlit frontend:
-```bash
-streamlit run streamlit_app.py
-```
+## Deployment
 
-7. Open your browser and navigate to `http://localhost:8501`
+This backend is deployed on Azure App Service. The deployment is automated using GitHub Actions.
 
-## Usage
+## Frontend
 
-1. Select your available streaming platforms from the list
-2. Share your viewing preferences (genres, favorite shows, mood, etc.)
-3. Receive personalized recommendations with direct links to watch
-4. Ask for more recommendations or refine your preferences
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+The frontend for this app is a Next.js application that can be found in a separate repository.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+MIT 
