@@ -44,7 +44,7 @@ def send_message():
     try:
         message = validate_message(request.json)
         response = llm_motor.generate_response(message)
-        return jsonify({"response": response})
+        return jsonify(response)
     except ValueError as e:
         logger.error(f"Validation error: {str(e)}")
         return jsonify({"error": str(e)}), 400
@@ -102,7 +102,7 @@ def get_recommendation():
     try:
         message = validate_message(request.json)
         response = llm_motor.generate_response(message)
-        return jsonify({'response': response})
+        return jsonify(response)
     except ValueError as e:
         logger.error(f"Validation error: {str(e)}")
         return jsonify({'error': str(e)}), 400

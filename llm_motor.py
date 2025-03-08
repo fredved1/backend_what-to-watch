@@ -10,6 +10,9 @@ from langchain.memory import ConversationBufferMemory
 from typing import List, Dict, Optional
 from templates.movie_agent import create_movie_recommendation_agent
 import logging
+import os
+import re
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +48,8 @@ class LLMMotor:
             model (str): Model identifier (default: gpt-4-0125-preview)
             temperature (float): Temperature parameter for response generation (default: 0.7)
         """
+        self.api_key = api_key
+        self.tmdb_api_key = os.getenv('TMDB_API_KEY')
         self.chat_model = create_chat_model(api_key, model, temperature)
         self.movie_agent = create_movie_recommendation_agent(self.chat_model)
         self.memory = ConversationBufferMemory(return_messages=True)
@@ -71,10 +76,65 @@ class LLMMotor:
             self.memory.chat_memory.add_user_message(prompt)
             response = self.movie_agent.invoke({"messages": self.memory.chat_memory.messages})
             self.memory.chat_memory.add_ai_message(response.content)
-            return response.content
+            
+            # Extract movie recommendations and enhance with posters and details
+            enhanced_response = self._enhance_with_movie_details(response.content)
+            
+            return enhanced_response
         except Exception as e:
             logger.error(f"Error generating response: {str(e)}")
             raise
+
+    def _enhance_with_movie_details(self, response):
+        """Extract movie titles from response and add poster URLs and details."""
+        # Simple regex to find movie titles (this can be improved based on your response format)
+        movie_titles = re.findall(r'"([^"]+)"', response)
+        
+        # If no titles found with quotes, try to find titles with common patterns
+        if not movie_titles:
+            # Look for titles that might be after numbers, colons, or at the beginning of lines
+            movie_titles = re.findall(r'(?:^|\d+\.\s+|\:\s+)([A-Z][^\.!?]+?)(?=\s+\(|\s+-|\.|$)', response, re.MULTILINE)
+        
+        enhanced_data = {"original_response": response, "movies": []}
+        
+        for title in movie_titles:
+            title = title.strip()
+            if len(title) > 3:  # Avoid very short matches
+                movie_info = self._get_movie_info(title)
+                if movie_info:
+                    enhanced_data["movies"].append(movie_info)
+        
+        return enhanced_data
+    
+    def _get_movie_info(self, title):
+        """Get movie information from TMDB API."""
+        if not self.tmdb_api_key:
+            logging.warning("TMDB_API_KEY not set, skipping movie info retrieval")
+            return {"title": title, "poster_url": None, "overview": None}
+        
+        try:
+            search_url = f"https://api.themoviedb.org/3/search/movie?api_key={self.tmdb_api_key}&query={title}"
+            response = requests.get(search_url)
+            data = response.json()
+            
+            if data.get('results') and len(data['results']) > 0:
+                movie = data['results'][0]
+                poster_path = movie.get('poster_path')
+                poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+                
+                return {
+                    "title": title,
+                    "tmdb_title": movie.get('title'),
+                    "poster_url": poster_url,
+                    "overview": movie.get('overview'),
+                    "release_date": movie.get('release_date'),
+                    "vote_average": movie.get('vote_average'),
+                    "tmdb_id": movie.get('id')
+                }
+        except Exception as e:
+            logging.error(f"Error fetching movie info for {title}: {str(e)}")
+        
+        return {"title": title, "poster_url": None, "overview": None}
 
     def get_chat_history(self) -> List[Dict[str, str]]:
         """
